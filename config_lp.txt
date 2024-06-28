@@ -1,0 +1,4 @@
+ip_remota=192.168.1.100
+usuario_ssh=ubuntupc
+contrasena_ssh=ubuntupc
+ruta_archivo_remoto=/home/ubuntupc/Documentos/RX02.txt
