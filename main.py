@@ -62,7 +62,7 @@ def mostrar_y_vaciar_archivo_ssh(ip, usuario, contrasena, ruta_archivo_remoto_lp
             contenido = archivo_remoto.read().decode('ascii', errors='ignore')
             if verificar_linea_t(contenido):
                 fecha_actual = datetime.now().strftime("%Y%m%d_%H%M")
-                ruta_destino_local = f'C:\\Users\\ingmP\\PycharmProjects\\lp5000_odoo\\RX02_copia_{fecha_actual}.txt'
+                ruta_destino_local = f'C:\\Users\\ingmP\\PycharmProjects\\lp5000_odoo\\02_copia_{fecha_actual}.txt'
 
                 with open(ruta_destino_local, 'w', encoding='ascii') as archivo_local:
                     archivo_local.write(contenido)
