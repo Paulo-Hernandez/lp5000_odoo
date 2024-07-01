@@ -119,7 +119,7 @@ def guardar_en_csv(segmentos):
     ruta_archivo_csv = f'C:\\Users\\ingmP\\PycharmProjects\\lp5000_odoo\\ordenes_compra_{fecha_actual}.csv'
     with open(ruta_archivo_csv, 'w', newline='', encoding='ascii') as csvfile:
         fieldnames = ['Bloque', 'Segmento', 'Orden de Compra', 'Numero de Transaccion', 'Operario', 'Codigo Articulo',
-                      'Lote', 'Fecha Ingreso', 'Fecha Caducidad', 'Peso']
+                      'Lote', 'Fecha Ingreso', 'Fecha Caducidad', 'Peso', 'Estado']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -143,7 +143,9 @@ def guardar_en_csv(segmentos):
                 'Codigo Articulo': codigo_articulo,
                 'Lote': lote,
                 'Fecha Ingreso': fecha_ingreso,
-                'Peso': peso
+                'Peso': peso,
+                'Estado': '0',
+                # Estado 0 pendiente
             })
 
     print(f"Datos guardados en archivo CSV: {ruta_archivo_csv}")
