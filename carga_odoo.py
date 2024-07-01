@@ -156,7 +156,6 @@ def actualizar_cantidad_recepcion(recepcion_id, producto_id, nueva_cantidad):
         logger.error(f"Error al actualizar la cantidad para la recepción {recepcion_id} y producto ID {producto_id}: {e}")
 
 
-
 def comparar_ordenes_con_recepciones(ordenes, recepciones):
     recepciones_a_eliminar = []
 
@@ -171,7 +170,7 @@ def comparar_ordenes_con_recepciones(ordenes, recepciones):
                     # Obtener la cantidad de la orden de compra
                     cantidad_orden = orden['Peso']
                     # Actualizar la cantidad en la recepción
-                    actualizar_cantidad_recepcion(recepcion['id'], cantidad_orden)
+                    actualizar_cantidad_recepcion(recepcion['id'], cantidad_orden,recepcion['default_code'])
                     # if len(coincidencias) == 1:
                         # actualizar_estado_recepcion(recepcion['id'])
                 else:
