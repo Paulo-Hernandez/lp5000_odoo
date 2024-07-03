@@ -147,13 +147,34 @@ def actualizar_estado_recepcion(recepcion_id):
 
 def actualizar_cantidad_recepcion(recepcion_id, producto_id, nueva_cantidad):
     try:
+        move_ids = models.execute_kw(DB, uid, PASSWORD,
+                                     'stock.move', 'search',
+                                     [[['picking_id', '=', recepcion_id]]])
+        print(move_ids)
+        recepcion_id = 117
         # Especificar el modelo y el método 'write' para actualizar
         models.execute_kw(DB, uid, PASSWORD,
                           'stock.move', 'write',
-                          [[recepcion_id], {'product_id': producto_id, 'product_uom_qty': nueva_cantidad}])
-        logger.info(f"Cantidad actualizada a {nueva_cantidad} para ID de recepción: {recepcion_id} y producto ID: {producto_id}")
+                          [[recepcion_id], {'product_id': producto_id, 'quantity': nueva_cantidad}])
+        logger.info(
+            f"Cantidad actualizada a {nueva_cantidad} para ID de recepción: {recepcion_id} "
+            f"y producto ID: {producto_id}")
+
+        # Obtener todos los campos del stock.move después de la actualización
+        fields = models.execute_kw(DB, uid, PASSWORD,
+                                   'stock.move', 'fields_get', [], {'attributes': ['string', 'type', 'required']})
+        logger.info("Campos del modelo stock.move:")
+        for field in fields:
+            logger.info(f"{field}: {fields[field]['string']} ({fields[field]['type']})")
+
+        # Leer los valores del stock.move correspondiente a recepcion_id
+        move_data = models.execute_kw(DB, uid, PASSWORD,
+                                      'stock.move', 'read', [recepcion_id])
+        logger.info(f"Datos del stock.move con ID {recepcion_id}: {move_data}")
+
     except Exception as e:
-        logger.error(f"Error al actualizar la cantidad para la recepción {recepcion_id} y producto ID {producto_id}: {e}")
+        logger.error(
+            f"Error al actualizar la cantidad para la recepción {recepcion_id} y producto ID {producto_id}: {e}")
 
 
 def comparar_ordenes_con_recepciones(ordenes, recepciones):
@@ -170,7 +191,7 @@ def comparar_ordenes_con_recepciones(ordenes, recepciones):
                     # Obtener la cantidad de la orden de compra
                     cantidad_orden = orden['Peso']
                     # Actualizar la cantidad en la recepción
-                    actualizar_cantidad_recepcion(recepcion['id'], cantidad_orden,recepcion['default_code'])
+                    actualizar_cantidad_recepcion(recepcion['id'], recepcion['default_code'], cantidad_orden)
                     # if len(coincidencias) == 1:
                         # actualizar_estado_recepcion(recepcion['id'])
                 else:
@@ -201,4 +222,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
