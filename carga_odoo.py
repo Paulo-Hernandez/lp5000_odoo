@@ -151,7 +151,7 @@ def actualizar_cantidad_recepcion(recepcion_id, producto_id, nueva_cantidad):
                                      'stock.move', 'search',
                                      [[['picking_id', '=', recepcion_id]]])
         print(move_ids)
-        recepcion_id = 117
+        recepcion_id = 118
         # Especificar el modelo y el método 'write' para actualizar
         models.execute_kw(DB, uid, PASSWORD,
                           'stock.move', 'write',
@@ -192,7 +192,8 @@ def comparar_ordenes_con_recepciones(ordenes, recepciones):
                     cantidad_orden = orden['Peso']
                     # Actualizar la cantidad en la recepción
                     actualizar_cantidad_recepcion(recepcion['id'], recepcion['default_code'], cantidad_orden)
-                    # if len(coincidencias) == 1:
+                    if len(coincidencias) == 1:
+                        print("holaa")
                         # actualizar_estado_recepcion(recepcion['id'])
                 else:
                     logger.info(f"Son distintos: OC: {orden['Orden de Compra']} - Código: {orden['Codigo Articulo']}")
