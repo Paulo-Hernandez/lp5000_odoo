@@ -21,6 +21,25 @@ uid = common.authenticate(DB, USER, PASSWORD, {})
 models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(URL))
 
 
+def obtener_id_producto_por_referencia(referencia_interna):
+    try:
+        # Buscar el producto por su referencia interna
+        producto = models.execute_kw(DB, uid, PASSWORD,
+                                     'product.product', 'search_read',
+                                     [[['default_code', '=', referencia_interna]]],
+                                     {'fields': ['id', 'default_code'], 'limit': 1})
+        if producto:
+            producto_id = producto[0]['id']
+            logger.info(f"ID del producto con referencia interna '{referencia_interna}': {producto_id}")
+            return producto_id
+        else:
+            logger.warning(f"No se encontró producto con referencia interna '{referencia_interna}'")
+            return None
+    except Exception as e:
+        logger.error(f"Error al obtener el ID del producto con referencia interna '{referencia_interna}': {e}")
+        return None
+
+
 def obtener_recepciones_pendientes():
     try:
         recepciones = models.execute_kw(DB, uid, PASSWORD,
@@ -150,27 +169,31 @@ def actualizar_cantidad_recepcion(recepcion_id, producto_id, nueva_cantidad):
         move_ids = models.execute_kw(DB, uid, PASSWORD,
                                      'stock.move', 'search',
                                      [[['picking_id', '=', recepcion_id]]])
-        print(move_ids)
-        recepcion_id = 118
+
+        producto_id = obtener_id_producto_por_referencia(producto_id)
+
+        # Leer los campos 'id' y 'product_id' de los movimientos de stock
+        moves = models.execute_kw(DB, uid, PASSWORD,
+                                  'stock.move', 'read',
+                                  [move_ids], {'fields': ['id', 'product_id']})
+
+        # Crear un diccionario con los IDs de los movimientos y los IDs de los productos
+        move_dict = {move['id']: move['product_id'][0] for move in moves}
+
+        # Encontrar el ID del stock.move que contiene el product_id deseado
+        id_move = None
+        for move_id, prod_id in move_dict.items():
+            if prod_id == producto_id:
+                id_move = move_id
+                break
+
         # Especificar el modelo y el método 'write' para actualizar
         models.execute_kw(DB, uid, PASSWORD,
                           'stock.move', 'write',
-                          [[recepcion_id], {'product_id': producto_id, 'quantity': nueva_cantidad}])
+                          [[id_move], {'product_id': producto_id, 'quantity': nueva_cantidad}])
         logger.info(
             f"Cantidad actualizada a {nueva_cantidad} para ID de recepción: {recepcion_id} "
             f"y producto ID: {producto_id}")
-
-        # Obtener todos los campos del stock.move después de la actualización
-        fields = models.execute_kw(DB, uid, PASSWORD,
-                                   'stock.move', 'fields_get', [], {'attributes': ['string', 'type', 'required']})
-        logger.info("Campos del modelo stock.move:")
-        for field in fields:
-            logger.info(f"{field}: {fields[field]['string']} ({fields[field]['type']})")
-
-        # Leer los valores del stock.move correspondiente a recepcion_id
-        move_data = models.execute_kw(DB, uid, PASSWORD,
-                                      'stock.move', 'read', [recepcion_id])
-        logger.info(f"Datos del stock.move con ID {recepcion_id}: {move_data}")
 
     except Exception as e:
         logger.error(
@@ -188,10 +211,13 @@ def comparar_ordenes_con_recepciones(ordenes, recepciones):
                 if orden['Codigo Articulo'] == recepcion['default_code']:
                     logger.info(f"Son iguales: OC: {orden['Orden de Compra']} - Código: {orden['Codigo Articulo']}")
                     recepciones_a_eliminar.append(recepcion)
+
                     # Obtener la cantidad de la orden de compra
                     cantidad_orden = orden['Peso']
+
                     # Actualizar la cantidad en la recepción
                     actualizar_cantidad_recepcion(recepcion['id'], recepcion['default_code'], cantidad_orden)
+
                     if len(coincidencias) == 1:
                         print("holaa")
                         # actualizar_estado_recepcion(recepcion['id'])
@@ -212,7 +238,9 @@ def main():
         if recepciones_pendientes:
             guardar_recepciones_csv(recepciones_pendientes)
             recepciones = pd.read_csv('recepciones_pendientes.csv').to_dict('records')
+            print(recepciones)
             ordenes = leer_archivos_ordenes()
+            print(ordenes)
             comparar_ordenes_con_recepciones(ordenes, recepciones)
         else:
             logger.info("No hay recepciones pendientes.")
