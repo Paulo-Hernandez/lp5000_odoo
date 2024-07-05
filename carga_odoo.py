@@ -21,6 +21,12 @@ uid = common.authenticate(DB, USER, PASSWORD, {})
 models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(URL))
 
 
+def filtrar_recepciones_por_id(recepciones, id_filtrar):
+    recepciones_filtradas = [recepcion for recepcion in recepciones if recepcion['id'] == id_filtrar]
+
+    return bool(recepciones_filtradas)
+
+
 def obtener_id_producto_por_referencia(referencia_interna):
     try:
         # Buscar el producto por su referencia interna
@@ -219,8 +225,8 @@ def comparar_ordenes_con_recepciones(ordenes, recepciones):
                     actualizar_cantidad_recepcion(recepcion['id'], recepcion['default_code'], cantidad_orden)
 
                     if len(coincidencias) == 1:
-                        print("holaa")
-                        # actualizar_estado_recepcion(recepcion['id'])
+                        actualizar_estado_recepcion(recepcion['id'])
+
                 else:
                     logger.info(f"Son distintos: OC: {orden['Orden de Compra']} - Código: {orden['Codigo Articulo']}")
         else:
@@ -238,9 +244,7 @@ def main():
         if recepciones_pendientes:
             guardar_recepciones_csv(recepciones_pendientes)
             recepciones = pd.read_csv('recepciones_pendientes.csv').to_dict('records')
-            print(recepciones)
             ordenes = leer_archivos_ordenes()
-            print(ordenes)
             comparar_ordenes_con_recepciones(ordenes, recepciones)
         else:
             logger.info("No hay recepciones pendientes.")
