@@ -3,6 +3,7 @@ import csv
 import os
 import pandas as pd
 import logging
+import time
 
 # Configuración del logger
 logging.basicConfig(level=logging.INFO)
@@ -116,13 +117,35 @@ def guardar_recepciones_csv(recepciones):
 
 def leer_archivos_ordenes(directorio='.'):
     archivos_csv = [f for f in os.listdir(directorio) if f.startswith('ordenes_compra') and f.endswith('.csv')]
-    ordenes = []
-    for archivo in archivos_csv:
-        df = pd.read_csv(archivo)
-        df = df[df['Estado'] == 0]
-        ordenes.extend(df.to_dict('records'))
 
+    if not archivos_csv:
+        logger.info("No se encontraron archivos 'ordenes_compra'.")
+        return
+
+    archivo = archivos_csv[0]
+
+    try:
+        df = pd.read_csv(os.path.join(directorio, archivo))
+    except pd.errors.EmptyDataError:
+        logger.info(f"El archivo {archivo} está vacío.")
+        os.remove(os.path.join(directorio, archivo))
+        return
+
+    if df.empty:
+        logger.info(f"El archivo {archivo} no contiene datos.")
+        os.remove(os.path.join(directorio, archivo))
+        return
+
+    df = df[df['Estado'] == 0]
+
+    if df.empty:
+        logger.info(f"El archivo {archivo} no contiene órdenes con 'Estado' igual a 0.")
+        os.remove(os.path.join(directorio, archivo))
+        return
+
+    ordenes = df.to_dict('records')
     ordenes_sumadas = {}
+
     for orden in ordenes:
         key = (orden['Orden de Compra'], orden['Codigo Articulo'])
         if key in ordenes_sumadas:
@@ -133,8 +156,14 @@ def leer_archivos_ordenes(directorio='.'):
                 'Codigo Articulo': orden['Codigo Articulo'],
                 'Peso': orden['Peso'],
                 'Estado': '0',
+                'Lote': str(orden['Lote']).zfill(14)
             }
-    return list(ordenes_sumadas.values())
+    ordenes_sumadas_values = list(ordenes_sumadas.values())
+    logger.info("Ordenes procesadas y enviadas")
+    os.remove(os.path.join(directorio, archivo))
+    logger.info(f"El archivo {archivo} ha sido eliminado.")
+
+    return ordenes_sumadas_values
 
 
 def actualizar_recepciones_csv(recepciones):
@@ -170,7 +199,7 @@ def actualizar_estado_recepcion(recepcion_id):
         logger.error(f"Error al actualizar estado de recepción {recepcion_id}: {e}")
 
 
-def actualizar_cantidad_recepcion(recepcion_id, producto_id, nueva_cantidad):
+def actualizar_cantidad_recepcion(recepcion_id, producto_id, nueva_cantidad, lote):
     try:
         move_ids = models.execute_kw(DB, uid, PASSWORD,
                                      'stock.move', 'search',
@@ -196,7 +225,7 @@ def actualizar_cantidad_recepcion(recepcion_id, producto_id, nueva_cantidad):
         # Especificar el modelo y el método 'write' para actualizar
         models.execute_kw(DB, uid, PASSWORD,
                           'stock.move', 'write',
-                          [[id_move], {'product_id': producto_id, 'quantity': nueva_cantidad}])
+                          [[id_move], {'product_id': producto_id, 'quantity': nueva_cantidad, 'lot_ids': lote}])
         logger.info(
             f"Cantidad actualizada a {nueva_cantidad} para ID de recepción: {recepcion_id} "
             f"y producto ID: {producto_id}")
@@ -221,8 +250,14 @@ def comparar_ordenes_con_recepciones(ordenes, recepciones):
                     # Obtener la cantidad de la orden de compra
                     cantidad_orden = orden['Peso']
 
+                    # Obtener el lote por producto
+                    lote_orden = orden['Lote']
+
                     # Actualizar la cantidad en la recepción
-                    actualizar_cantidad_recepcion(recepcion['id'], recepcion['default_code'], cantidad_orden)
+                    actualizar_cantidad_recepcion(recepcion['id'],
+                                                  recepcion['default_code'],
+                                                  cantidad_orden,
+                                                  lote_orden)
 
                     if len(coincidencias) == 1:
                         actualizar_estado_recepcion(recepcion['id'])
@@ -239,13 +274,13 @@ def comparar_ordenes_con_recepciones(ordenes, recepciones):
 
 def main():
     try:
-        recepciones_pendientes = obtener_recepciones_pendientes()
-
         if recepciones_pendientes:
-            guardar_recepciones_csv(recepciones_pendientes)
             recepciones = pd.read_csv('recepciones_pendientes.csv').to_dict('records')
             ordenes = leer_archivos_ordenes()
-            comparar_ordenes_con_recepciones(ordenes, recepciones)
+            if ordenes:
+                comparar_ordenes_con_recepciones(ordenes, recepciones)
+            else:
+                logger.info("No hay ordenes pendientes.")
         else:
             logger.info("No hay recepciones pendientes.")
 
@@ -254,4 +289,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    recepciones_pendientes = obtener_recepciones_pendientes()
+    if recepciones_pendientes:
+        guardar_recepciones_csv(recepciones_pendientes)
+    while True:
+        logger.info("REINICIO DE CICLO")
+        main()
+        time.sleep(1)
