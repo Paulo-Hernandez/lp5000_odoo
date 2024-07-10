@@ -1,0 +1,4 @@
+URL=https://ingmetrica-datos-sandbox-12071743.dev.odoo.com
+DB=ingmetrica-datos-sandbox-12071743
+USER=aromero@ingmetrica.cl
+PASSWORD=88a302d55d70f15af3fdeda898b58102b0edc897

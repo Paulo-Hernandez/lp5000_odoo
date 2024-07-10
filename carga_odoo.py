@@ -9,11 +9,21 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Datos de conexión a Odoo
-URL = 'https://ingmetrica-datos-sandbox-12071743.dev.odoo.com'
-DB = 'ingmetrica-datos-sandbox-12071743'
-USER = 'aromero@ingmetrica.cl'
-PASSWORD = '88a302d55d70f15af3fdeda898b58102b0edc897'
+
+def leer_configuracion(archivo):
+    config = {}
+    with open(archivo, 'r') as file:
+        for line in file:
+            key, value = line.strip().split('=')
+            config[key] = value
+    return config
+
+
+config = leer_configuracion('config_odoo.txt')
+URL = config['URL']
+DB = config['DB']
+USER = config['USER']
+PASSWORD = config['PASSWORD']
 
 # Conectar con la instancia de Odoo a través de XML-RPC
 common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(URL))
@@ -201,6 +211,7 @@ def actualizar_estado_recepcion(recepcion_id):
 
 def actualizar_cantidad_recepcion(recepcion_id, producto_id, nueva_cantidad, lote):
     try:
+
         move_ids = models.execute_kw(DB, uid, PASSWORD,
                                      'stock.move', 'search',
                                      [[['picking_id', '=', recepcion_id]]])
@@ -222,10 +233,21 @@ def actualizar_cantidad_recepcion(recepcion_id, producto_id, nueva_cantidad, lot
                 id_move = move_id
                 break
 
+        move_line_ids = models.execute_kw(DB, uid, PASSWORD, 'stock.move.line', 'search', [[['move_id', '=', id_move]]])
+        if not move_line_ids:
+            logger.error(f"No se encontraron líneas de movimiento para el movimiento con ID {id_move}.")
+
+            # Actualizar cada línea de movimiento con el lote
+        for move_line_id in move_line_ids:
+            models.execute_kw(DB, uid, PASSWORD, 'stock.move.line', 'write', [[move_line_id], {
+                'lot_name': lote,
+            }])
+            logger.info("Actualizacion de lote")
+
         # Especificar el modelo y el método 'write' para actualizar
         models.execute_kw(DB, uid, PASSWORD,
                           'stock.move', 'write',
-                          [[id_move], {'product_id': producto_id, 'quantity': nueva_cantidad, 'lot_ids': lote}])
+                          [[id_move], {'product_id': producto_id, 'quantity': nueva_cantidad}])
         logger.info(
             f"Cantidad actualizada a {nueva_cantidad} para ID de recepción: {recepcion_id} "
             f"y producto ID: {producto_id}")
@@ -290,9 +312,10 @@ def main():
 
 if __name__ == "__main__":
     recepciones_pendientes = obtener_recepciones_pendientes()
+    logger.info("INICIO DE CICLO")
     if recepciones_pendientes:
         guardar_recepciones_csv(recepciones_pendientes)
     while True:
-        logger.info("REINICIO DE CICLO")
         main()
+        logger.info("REINICIO DE CICLO")
         time.sleep(1)
