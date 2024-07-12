@@ -11,12 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 def leer_configuracion(archivo):
-    config = {}
+    config_odoo = {}
     with open(archivo, 'r') as file:
         for line in file:
             key, value = line.strip().split('=')
-            config[key] = value
-    return config
+            config_odoo[key] = value
+    return config_odoo
 
 
 config = leer_configuracion('config_odoo.txt')
@@ -129,7 +129,7 @@ def leer_archivos_ordenes(directorio='.'):
     archivos_csv = [f for f in os.listdir(directorio) if f.startswith('ordenes_compra') and f.endswith('.csv')]
 
     if not archivos_csv:
-        logger.info("No se encontraron archivos 'ordenes_compra'.")
+        # logger.info("No se encontraron archivos 'ordenes_compra'.")
         return
 
     archivo = archivos_csv[0]
@@ -301,8 +301,8 @@ def main():
             ordenes = leer_archivos_ordenes()
             if ordenes:
                 comparar_ordenes_con_recepciones(ordenes, recepciones)
-            else:
-                logger.info("No hay ordenes pendientes.")
+            # else:
+                # logger.info("No hay ordenes pendientes.")
         else:
             logger.info("No hay recepciones pendientes.")
 
@@ -317,5 +317,4 @@ if __name__ == "__main__":
         guardar_recepciones_csv(recepciones_pendientes)
     while True:
         main()
-        logger.info("REINICIO DE CICLO")
         time.sleep(1)

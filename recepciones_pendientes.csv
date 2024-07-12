@@ -1,2 +1,5 @@
 id,name,origin,state,product_id,product_uom_qty,default_code
 24,BA/IN/00011,P00010,assigned,187,1.0,66
+35,BA/IN/00022,P00021,assigned,187,2.0,66
+33,BA/IN/00020,P00019,assigned,186,10.0,4001
+33,BA/IN/00020,P00019,assigned,187,3.0,66
