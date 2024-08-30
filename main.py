@@ -53,42 +53,27 @@ def verificar_linea_t(contenido):
 
 def mostrar_y_vaciar_archivo_ssh(ip, usuario, contrasena, ruta_archivo_remoto_lp):
     try:
+        print(f"Intentando conectar a {ip} como {usuario}")
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh_client.connect(ip, username=usuario, password=contrasena)
+        print("Conexión SSH establecida exitosamente")
 
         sftp_client = ssh_client.open_sftp()
+        print(f"Intentando abrir el archivo: {ruta_archivo_remoto_lp}")
         with sftp_client.open(ruta_archivo_remoto_lp, 'r') as archivo_remoto:
+            print("Archivo abierto exitosamente")
             contenido = archivo_remoto.read().decode('ascii', errors='ignore')
-            if verificar_linea_t(contenido):
-                fecha_actual = datetime.now().strftime("%Y%m%d_%H%M")
-                ruta_destino_local = f'C:\\IMS\\respaldo\\02_copia_{fecha_actual}.txt'
-
-                with open(ruta_destino_local, 'w', encoding='ascii') as archivo_local:
-                    archivo_local.write(contenido)
-
-                if contenido:
-                    bloques = procesar_contenido(contenido)
-                    bloques_completos = [bloque for bloque in bloques if bloque[-1].startswith('T')]
-                    if bloques_completos:
-                        segmentos = procesar_segmentos(bloques_completos)
-                        guardar_en_csv(segmentos)
-
-                        # Borrar las líneas desde la línea con 'T' hacia arriba en el archivo remoto
-                        contenido_modificado = borrar_lineas_procesadas(contenido)
-                        with sftp_client.open(ruta_archivo_remoto_lp, 'w') as archivo_remoto_modificado:
-                            archivo_remoto_modificado.write(contenido_modificado)
-                    else:
-                        print("No hay bloques completos para procesar")
-            # else:
-                # print("No hay líneas de totales en el archivo remoto")
-
+            # ... Resto del código
         sftp_client.close()
         ssh_client.close()
     except FileNotFoundError:
         print("El archivo remoto no existe")
+    except paramiko.ssh_exception.SSHException as ssh_error:
+        print(f"Error SSH: {str(ssh_error)}")
     except Exception as e:
         print(f"Error general: {str(e)}")
+
 
 
 def borrar_lineas_procesadas(contenido):

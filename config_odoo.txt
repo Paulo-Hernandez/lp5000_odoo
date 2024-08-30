@@ -1,4 +1,4 @@
-URL=https://ingmetrica-datos-sandbox-12071743.dev.odoo.com
-DB=ingmetrica-datos-sandbox-12071743
-USER=aromero@ingmetrica.cl
-PASSWORD=88a302d55d70f15af3fdeda898b58102b0edc897
+URL=https://carnes-a-punto-sandbox-14433348.dev.odoo.com
+DB=carnes-a-punto-sandbox-14433348
+USER=apunto@ingmetrica.cl
+PASSWORD=Carnesapunto123
